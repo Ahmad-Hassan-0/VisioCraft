@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisioCraft AI - Canvas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; font-family: 'Overlook', 'Inter', sans-serif; background: #fff; }
+        .page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .hero-image { position: absolute; top: 30%; left: 0; width: 100%; height: 70%; object-fit: cover; object-position: center top; opacity: 0.45; z-index: 0; pointer-events: none; }
+
+        .main { flex: 1; padding: 20px 40px 10px; position: relative; z-index: 5; overflow: hidden; display: flex; gap: 0; align-items: flex-start; justify-content: center; }
+
+        /* ── TOOLBAR ── */
+        .toolbar { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; padding-top: calc(50px + 36px + 10px); }
+        .toolbar:hover .tool-btn { width: 175px; gap: 10px; padding: 11px 16px 11px 14px; justify-content: flex-start; }
+        .toolbar:hover .tool-btn .label { opacity: 1; width: auto; }
+        .toolbar:hover .tool-btn:not(:disabled):hover { background: #132f74; box-shadow: -4px 4px 16px rgba(24,66,157,0.35); }
+        .tool-btn { display: flex; align-items: center; background: #18429D; color: #fff; border: none; border-radius: 50px 0 0 50px; padding: 11px 11px 11px 13px; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; overflow: hidden; width: 48px; height: 44px; justify-content: center; gap: 0; position: relative; }
+        .tool-btn:disabled { opacity: 1; cursor: not-allowed; background: #8fa8d4; }
+        .tool-btn .icon { width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .tool-btn .icon img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+        .tool-btn .label { font-size: 0.82rem; font-weight: 600; overflow: hidden; white-space: nowrap; opacity: 0; width: 0; pointer-events: none; transition: opacity 0.15s; }
+
+        /* Tooltip */
+        .tool-btn .tooltip { position: absolute; left: 56px; top: 50%; transform: translateY(-50%); background: #18429D; color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; box-shadow: 0 4px 12px rgba(24,66,157,0.3); z-index: 300; }
+        .tool-btn .tooltip::before { content:''; position:absolute; right:100%; top:50%; transform:translateY(-50%); border:5px solid transparent; border-right-color:#18429D; }
+        .tool-btn:hover .tooltip { opacity: 1; }
+        .toolbar:hover .tool-btn .tooltip { opacity: 0; }
+
+        .tool-divider { height: 1px; background: #dde3f0; margin: 4px 0; }
+
+        .popup-wrapper { position: relative; }
+        .popup { display: none; position: absolute; left: 52px; top: 0; background: #fff; border: 2px solid #18429D; border-radius: 14px; padding: 16px; min-width: 220px; z-index: 200; box-shadow: 0 8px 28px rgba(24,66,157,0.18); }
+        .popup.open { display: block; }
+        .popup h4 { color: #18429D; font-size: 0.82rem; font-weight: 700; margin-bottom: 10px; }
+        .popup select { width: 100%; padding: 8px 10px; border: 1.5px solid #18429D; border-radius: 8px; font-size: 0.82rem; color: #18429D; background: #f0f4ff; cursor: pointer; outline: none; margin-bottom: 10px; }
+        .popup .go-btn { width: 100%; padding: 10px; background: #18429D; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+        .popup .go-btn:hover { background: #132f74; }
+        .ctrl-row { margin-bottom: 10px; }
+        .ctrl-row label { display: flex; justify-content: space-between; color: #555; font-size: 0.76rem; font-weight: 600; margin-bottom: 4px; }
+        .ctrl-row label span { color: #18429D; font-weight: 700; }
+        .ctrl-row input[type=range] { width: 100%; height: 5px; background: #dde3f0; border-radius: 3px; outline: none; -webkit-appearance: none; }
+        .ctrl-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; background: #18429D; border-radius: 50%; cursor: pointer; }
+        .popup-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .popup-actions button { flex: 1; padding: 9px; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+        .popup-actions .apply { background: #18429D; color: #fff; }
+        .popup-actions .apply:hover { background: #132f74; }
+        .popup-actions .reset { background: #f0f4ff; color: #18429D; }
+
+        /* ── CANVAS ── */
+        .canvas-area { width: min(1100px, 85vw); flex: none; border: 2px solid #2E8FAD; border-radius: 16px; background: #fff; display: flex; align-items: center; justify-content: center; height: calc(100vh - 280px); overflow: hidden; padding: 0; position: relative; }
+
+        /* Skeleton */
+        .skeleton { width: 100%; height: 100%; border-radius: 14px; background: linear-gradient(90deg, #f0f4ff 25%, #e0e8ff 50%, #f0f4ff 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        .progress-bar { display: flex; align-items: center; background: #f5f7fc; border-radius: 50px; padding: 5px 10px; border: 1.5px solid #dde3f0; align-self: center; margin-bottom: 10px; flex-shrink: 0; }
+        .step { padding: 4px 14px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; color: #aaa; transition: all 0.3s; }
+        .step.active { background: #18429D; color: #fff; box-shadow: 0 2px 10px rgba(24,66,157,0.3); }
+        .step.done { color: #2E8FAD; }
+        .step-arrow { color: #ccc; font-size: 0.7rem; padding: 0 2px; }
+
+        .placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #c5cfe0; }
+        .placeholder img { width: 48px; opacity: 0.3; }
+        .placeholder p { font-size: 0.95rem; font-weight: 500; }
+
+        #canvas { max-width: 100%; max-height: 100%; cursor: crosshair; display: none; }
+        #canvas.visible { display: block; }
+        #canvas.composition-mode { cursor: move; }
+
+        .btn-proceed { position: absolute; bottom: 16px; right: 16px; background: #18429D; color: #fff; border: none; padding: 14px 36px; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; z-index: 10; display: none; }
+        .btn-proceed.show { display: block; }
+        .btn-proceed:hover { background: #132f74; transform: translateY(-2px); }
+
+        .loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(255,255,255,0.97); padding: 40px 50px; border-radius: 20px; display: none; z-index: 1000; text-align: center; box-shadow: 0 20px 60px rgba(24,66,157,0.2); border: 2px solid #2E8FAD; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #18429D; border-radius: 50%; width: 46px; height: 46px; animation: spin 0.9s linear infinite; margin: 0 auto 14px; }
+        .loading-text { color: #18429D; font-weight: 700; font-size: 0.95rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 500; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #fff; border-radius: 20px; padding: 40px 50px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); min-width: 260px; }
+        .modal h3 { color: #18429D; margin-bottom: 28px; font-size: 1.3rem; }
+        .format-btns { display: flex; flex-direction: column; gap: 14px; }
+        .fmt-btn { background: #18429D; color: #fff; border: none; padding: 14px 28px; border-radius: 20px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .fmt-btn:hover { background: #132f74; transform: translateY(-2px); }
+        .fmt-cancel { margin-top: 16px; background: none; border: none; color: #999; cursor: pointer; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <img src="{{ url_for('static', filename='bg1.png') }}" alt="" class="hero-image">
+
+    {% include 'navbar.html' %}
+
+    <div class="main">
+        <div class="toolbar">
+            <button class="tool-btn" onclick="zoomIn()"><span class="icon"><img src="{{ url_for('static', filename='zoominicon.png') }}" alt=""></span><span class="label">Zoom In</span><span class="tooltip">Zoom In</span></button>
+            <button class="tool-btn" onclick="zoomOut()"><span class="icon"><img src="{{ url_for('static', filename='zoomouticon.png') }}" alt=""></span><span class="label">Zoom Out</span><span class="tooltip">Zoom Out</span></button>
+            <div class="tool-divider"></div>
+            <button class="tool-btn" id="clearBtn" onclick="clearSelection()" disabled><span class="icon"><img src="{{ url_for('static', filename='deselecticon.png') }}" alt=""></span><span class="label">Clear Selection</span><span class="tooltip">Clear Selection</span></button>
+            <button class="tool-btn" id="extractBtn" onclick="extractObject()" disabled><span class="icon"><img src="{{ url_for('static', filename='extarcticon.png') }}" alt=""></span><span class="label">Extract Object</span><span class="tooltip">Extract Object</span></button>
+            <div class="popup-wrapper">
+                <button class="tool-btn" id="fillBtn" onclick="togglePopup('inpaintPopup')" disabled><span class="icon"><img src="{{ url_for('static', filename='fillbgicon.png') }}" alt=""></span><span class="label">Fill Background</span><span class="tooltip">Fill Background</span></button>
+                <div class="popup" id="inpaintPopup">
+                    <h4>Inpainting Method</h4>
+                    <select id="inpaintMethod">
+                        <option value="sd">🤖 Stable Diffusion (Best)</option>
+                        <option value="lama">🧠 LaMa AI (Fast)</option>
+                        <option value="opencv">⚡ OpenCV (Fallback)</option>
+                    </select>
+                    <button class="go-btn" onclick="inpaintBackground()">Fill Now →</button>
+                </div>
+            </div>
+            <div class="popup-wrapper">
+                <button class="tool-btn" id="composeBtn" onclick="togglePopup('composePopup')" disabled><span class="icon"><img src="{{ url_for('static', filename='compositionicon.png') }}" alt=""></span><span class="label">Composition</span><span class="tooltip">Composition</span></button>
+                <div class="popup" id="composePopup">
+                    <h4>Object Controls</h4>
+                    <div class="ctrl-row"><label>Rotation <span id="rotationValue">0°</span></label><input type="range" id="rotationSlider" min="-180" max="180" value="0" oninput="updateTransform()"></div>
+                    <div class="ctrl-row"><label>Scale <span id="scaleValue">100%</span></label><input type="range" id="scaleSlider" min="10" max="200" value="100" oninput="updateTransform()"></div>
+                    <div class="ctrl-row"><label>Opacity <span id="opacityValue">100%</span></label><input type="range" id="opacitySlider" min="0" max="100" value="100" oninput="updateTransform()"></div>
+                    <div class="popup-actions"><button class="reset" onclick="resetComposition()">Reset</button><button class="apply" onclick="startComposition()">Apply →</button></div>
+                </div>
+            </div>
+            <div class="tool-divider"></div>
+            <button class="tool-btn" id="downloadBtn" onclick="openModal()" disabled><span class="icon"><img src="{{ url_for('static', filename='downloadicon.png') }}" alt=""></span><span class="label">Download</span><span class="tooltip">Download</span></button>
+            <button class="tool-btn" id="retryBtn" onclick="retryAction()" disabled><span class="icon"><img src="{{ url_for('static', filename='retryicon.png') }}" alt=""></span><span class="label">Retry</span><span class="tooltip">Retry</span></button>
+            <button class="tool-btn" onclick="goBack()"><span class="icon"><img src="{{ url_for('static', filename='deleteicon.png') }}" alt=""></span><span class="label">Delete / Back</span><span class="tooltip">Delete / Back</span></button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; align-items:center; flex:none; gap:10px;">
+            <div class="progress-bar">
+                <div class="step active" id="step1">① Select</div><span class="step-arrow">›</span>
+                <div class="step" id="step2">② Extract</div><span class="step-arrow">›</span>
+                <div class="step" id="step3">③ Fill BG</div><span class="step-arrow">›</span>
+                <div class="step" id="step4">④ Compose</div>
+            </div>
+            <div class="canvas-area">
+                <div class="skeleton" id="skeleton"></div>
+                <div class="placeholder" id="placeholder" style="display:none;">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="">
+                    <p>Drag to select an object</p>
+                </div>
+                <canvas id="canvas"></canvas>
+                <button class="btn-proceed" id="downloadFinalBtn" onclick="downloadComposite()">⬇ Download Final</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="loading" id="loading"><div class="spinner"></div><div class="loading-text" id="loadingText">Processing...</div></div>
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3>Choose Download Format</h3>
+        <div class="format-btns">
+            <button class="fmt-btn" onclick="downloadAs('png')">PNG</button>
+            <button class="fmt-btn" onclick="downloadAs('jpg')">JPG</button>
+            <button class="fmt-btn" onclick="downloadAs('jpeg')">JPEG</button>
+        </div>
+        <button class="fmt-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+const auth = getAuth(initializeApp({
+    apiKey: "AIzaSyBJYEpbNJFWmfG6-ZlO_gt55LGxBW64T5A",
+    authDomain: "visiocraft-d55a9.firebaseapp.com",
+    projectId: "visiocraft-d55a9",
+    storageBucket: "visiocraft-d55a9.firebasestorage.app",
+    messagingSenderId: "183906867290",
+    appId: "1:183906867290:web:30aac496a1a345a75ca063"
+}));
+// ── AUTH GUARD ──
+onAuthStateChanged(auth, (user) => { if (!user) window.location.href = '/login'; });
+window.logout = async () => { await signOut(auth); showToast('Logged out', 'info'); setTimeout(() => window.location.href = '/login', 800); };
+</script>
+
+<script>
+let sessionId = null;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let currentImage=null,clickPoints=[],isDragging=false,dragPath=[],selectionComplete=false;
+let extractedObjectImg=null,inpaintedBgImg=null,inpaintedBgUrl=null;
+let compositionMode=false,objectTransform={x:0,y:0,rotation:0,scale:1.0,opacity:1.0};
+let isDraggingObject=false,dragOffsetX=0,dragOffsetY=0,zoom=1.0,currentResultUrl=null;
+
+function setStep(n){for(let i=1;i<=4;i++){const el=document.getElementById('step'+i);el.classList.remove('active','done');if(i<n)el.classList.add('done');if(i===n)el.classList.add('active');}}
+function togglePopup(id){['inpaintPopup','composePopup'].forEach(p=>{if(p!==id)document.getElementById(p).classList.remove('open');});document.getElementById(id).classList.toggle('open');}
+document.addEventListener('click',(e)=>{if(!e.target.closest('.popup-wrapper'))document.querySelectorAll('.popup').forEach(p=>p.classList.remove('open'));});
+
+async function initSession(){
+    try{
+        const params=new URLSearchParams(window.location.search);
+        const existing=params.get('session_id');
+        const fromUpload=params.get('from')==='upload';
+        if(existing){
+            sessionId=existing;
+            showLoading('Loading image...');
+            if(fromUpload){await loadImageOnCanvas('/api/image/'+sessionId);}
+            else{await fetch('/api/upload-generated',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId})});await loadImageOnCanvas('/api/generated/'+sessionId);}
+            hideLoading();setStep(1);
+            document.getElementById('clearBtn').disabled=false;
+            showToast('Image loaded! Start by selecting an object.', 'success');
+            return;
+        }
+        const res=await fetch('/api/session/create',{method:'POST'});
+        const data=await res.json();
+        sessionId=data.session_id;
+        // No session — hide skeleton, show placeholder
+        document.getElementById('skeleton').style.display='none';
+        document.getElementById('placeholder').style.display='flex';
+    }catch(e){console.error(e);hideLoading();}
+}
+
+async function loadImageOnCanvas(url){
+    return new Promise((resolve,reject)=>{
+        const img=new Image();
+        img.onload=()=>{
+            currentImage=img;canvas.width=img.width;canvas.height=img.height;
+            ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);
+            canvas.classList.add('visible');
+            document.getElementById('skeleton').style.display='none';
+            document.getElementById('placeholder').style.display='none';
+            resolve();
+        };
+        img.onerror=()=>reject();
+        img.src=url+'?t='+Date.now();
+    });
+}
+
+canvas.addEventListener('mousedown',(e)=>{if(!currentImage)return;if(compositionMode){handleCompositionMouseDown(e);return;}if(selectionComplete)return;const{x,y}=getCoords(e);isDragging=true;dragPath=[{x,y}];clickPoints=[{x,y,label:1}];});
+canvas.addEventListener('mousemove',(e)=>{const{x,y}=getCoords(e);if(compositionMode&&isDraggingObject){handleCompositionMouseMove(e);return;}if(isDragging&&currentImage){dragPath.push({x,y});clickPoints.push({x,y,label:1});if(dragPath.length%2===0)drawDragPath();}});
+canvas.addEventListener('mouseup',async(e)=>{if(compositionMode){handleCompositionMouseUp(e);return;}if(!isDragging||!currentImage)return;isDragging=false;const{x,y}=getCoords(e);dragPath.push({x,y});clickPoints.push({x,y,label:1});if(clickPoints.length>10)await performSegmentation();});
+function getCoords(e){const r=canvas.getBoundingClientRect();return{x:Math.round((e.clientX-r.left)*(canvas.width/r.width)),y:Math.round((e.clientY-r.top)*(canvas.height/r.height))};}
+function drawDragPath(){if(!currentImage||dragPath.length<3)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(currentImage,0,0);ctx.fillStyle='rgba(46,143,173,0.2)';ctx.strokeStyle='#18429D';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(dragPath[0].x,dragPath[0].y);dragPath.forEach(p=>ctx.lineTo(p.x,p.y));ctx.closePath();ctx.fill();ctx.stroke();}
+
+async function performSegmentation(){
+    showLoading('Segmenting object...');
+    try{const res=await fetch('/api/segment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,points:clickPoints})});const data=await res.json();if(data.success){await loadPreview(data.preview_url);selectionComplete=true;setStep(2);document.getElementById('extractBtn').disabled=false;document.getElementById('retryBtn').disabled=false;showToast('Object selected! Now extract it.','success');}else{showToast('Segmentation failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+}
+async function loadPreview(url){return new Promise(r=>{const img=new Image();img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);r();};img.src=url+'?t='+Date.now();});}
+async function extractObject(){
+    showLoading('Extracting object...');
+    try{const res=await fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId})});const data=await res.json();if(data.success){extractedObjectImg=new Image();extractedObjectImg.src=data.object_url+'?t='+Date.now();setStep(3);document.getElementById('fillBtn').disabled=false;showToast('Object extracted! Now fill the background.','success');}else{showToast('Failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+}
+function clearSelection(){clickPoints=[];dragPath=[];isDragging=false;selectionComplete=false;if(currentImage){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(currentImage,0,0);}document.getElementById('extractBtn').disabled=true;document.getElementById('retryBtn').disabled=true;setStep(1);showToast('Selection cleared','info');}
+function retryAction(){clearSelection();}
+
+async function inpaintBackground(){
+    document.getElementById('inpaintPopup').classList.remove('open');
+    const method=document.getElementById('inpaintMethod').value;
+    showLoading({sd:'🤖 SD AI (30–60s)...',lama:'🧠 LaMa...',opencv:'⚡ Fast fill...'}[method]||'Filling...');
+    showToast('Filling background...','info');
+    try{const res=await fetch('/api/inpaint',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,method:method})});const data=await res.json();if(data.success){inpaintedBgUrl=data.inpainted_url;inpaintedBgImg=new Image();inpaintedBgImg.onload=async()=>{await loadResult(inpaintedBgUrl);setStep(4);currentResultUrl=inpaintedBgUrl;document.getElementById('composeBtn').disabled=false;document.getElementById('downloadBtn').disabled=false;document.getElementById('downloadFinalBtn').classList.add('show');showToast('Background filled!','success');};inpaintedBgImg.src=inpaintedBgUrl+'?t='+Date.now();}else{showToast('Failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+}
+async function loadResult(url){return new Promise(r=>{const img=new Image();img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);r();};img.src=url+'?t='+Date.now();});}
+
+function startComposition(){document.getElementById('composePopup').classList.remove('open');if(!inpaintedBgImg||!extractedObjectImg){showToast('Missing images!','error');return;}compositionMode=true;canvas.classList.add('composition-mode');objectTransform={x:canvas.width/2,y:canvas.height/2,rotation:0,scale:1.0,opacity:1.0};renderComposition();showToast('Drag the object to reposition it','info');}
+function renderComposition(){if(!inpaintedBgImg||!extractedObjectImg)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(inpaintedBgImg,0,0,canvas.width,canvas.height);ctx.save();ctx.translate(objectTransform.x,objectTransform.y);ctx.rotate(objectTransform.rotation*Math.PI/180);ctx.scale(objectTransform.scale,objectTransform.scale);ctx.globalAlpha=objectTransform.opacity;ctx.drawImage(extractedObjectImg,-extractedObjectImg.width/2,-extractedObjectImg.height/2);ctx.restore();}
+function handleCompositionMouseDown(e){const{x,y}=getCoords(e);const hw=extractedObjectImg.width*objectTransform.scale/2,hh=extractedObjectImg.height*objectTransform.scale/2;if(x>=objectTransform.x-hw&&x<=objectTransform.x+hw&&y>=objectTransform.y-hh&&y<=objectTransform.y+hh){isDraggingObject=true;dragOffsetX=x-objectTransform.x;dragOffsetY=y-objectTransform.y;canvas.style.cursor='grabbing';}}
+function handleCompositionMouseMove(e){if(!isDraggingObject)return;const{x,y}=getCoords(e);objectTransform.x=x-dragOffsetX;objectTransform.y=y-dragOffsetY;renderComposition();}
+function handleCompositionMouseUp(){if(isDraggingObject){isDraggingObject=false;canvas.style.cursor='move';}}
+function updateTransform(){objectTransform.rotation=parseInt(document.getElementById('rotationSlider').value);objectTransform.scale=parseInt(document.getElementById('scaleSlider').value)/100;objectTransform.opacity=parseInt(document.getElementById('opacitySlider').value)/100;document.getElementById('rotationValue').textContent=objectTransform.rotation+'°';document.getElementById('scaleValue').textContent=Math.round(objectTransform.scale*100)+'%';document.getElementById('opacityValue').textContent=Math.round(objectTransform.opacity*100)+'%';if(compositionMode)renderComposition();}
+function resetComposition(){objectTransform={x:canvas.width/2,y:canvas.height/2,rotation:0,scale:1.0,opacity:1.0};document.getElementById('rotationSlider').value=0;document.getElementById('scaleSlider').value=100;document.getElementById('opacitySlider').value=100;updateTransform();}
+
+async function downloadComposite(){
+    showLoading('Saving...');
+    try{const res=await fetch('/api/compose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,transform:{x:Math.round(objectTransform.x),y:Math.round(objectTransform.y),rotation:objectTransform.rotation,scale:objectTransform.scale,opacity:objectTransform.opacity}})});const data=await res.json();if(data.success){window.open(data.composite_url,'_blank');showToast('Composite saved!','success');}else{showToast('Failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+}
+function openModal(){document.getElementById('modalOverlay').classList.add('show');}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show');}
+function downloadAs(fmt){closeModal();if(!currentResultUrl)return;const a=document.createElement('a');a.href=currentResultUrl;a.download='visiocraft.'+fmt;a.click();showToast('Downloaded as '+fmt.toUpperCase(),'success');}
+function goBack(){window.location.href='/home';}
+function zoomIn(){zoom*=1.2;canvas.style.transform=`scale(${zoom})`;canvas.style.transformOrigin='center';showToast('Zoomed in','info');}
+function zoomOut(){zoom/=1.2;canvas.style.transform=`scale(${zoom})`;canvas.style.transformOrigin='center';showToast('Zoomed out','info');}
+function showLoading(t){document.getElementById('loading').style.display='block';document.getElementById('loadingText').textContent=t;}
+function hideLoading(){document.getElementById('loading').style.display='none';}
+initSession();
+</script>
+</body>
+</html>

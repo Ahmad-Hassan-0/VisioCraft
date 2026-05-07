@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisioCraft AI - About Us</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Overlook', 'Inter', sans-serif;
+            background: #fff;
+        }
+
+        .page {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-image {
+            position: absolute; top: 30%; left: 0;
+            width: 100%; height: 70%;
+            object-fit: cover; object-position: center top;
+            opacity: 0.25; z-index: 0; pointer-events: none;
+        }
+
+        /* MAIN CONTENT */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 5;
+            padding: 0 80px 40px;
+            gap: 36px;
+            margin-top: -80px;
+        }
+
+        .about-title {
+            font-size: 5rem;
+            font-weight: 700;
+            color: #18429D;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .about-desc {
+            font-size: 1.3rem;
+            color: #444;
+            text-align: center;
+            max-width: 1200px;
+            line-height: 1.8;
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        .cards {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            width: 100%;
+            max-width: 1500px;
+        }
+
+        .card {
+            background: #18429D;
+            border-radius: 24px;
+            padding: 48px 36px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 18px;
+            text-align: left;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 40px rgba(24,66,157,0.18);
+        }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 20px 60px rgba(24,66,157,0.35); }
+
+        .card-icon {
+            width: 40px; height: 40px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+
+        .card-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+            text-align: left;
+        }
+
+        .card-desc {
+            font-size: 1.08rem;
+            color: rgba(255,255,255,0.85);
+            line-height: 1.7;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <img src="{{ url_for('static', filename='bg1.png') }}" alt="" class="hero-image">
+
+    {% include 'navbar.html' %}
+
+    <div class="main">
+        <h1 class="about-title">About Us</h1>
+
+        <p class="about-desc">VisioCraft AI turns your ideas into visuals with effortless precision. From generating images to editing objects, every step is handled intelligently in the background. You simply guide the creative direction while the system does the heavy work. A faster, smarter way to bring your imagination to life.</p>
+
+        <div class="cards">
+            <div class="card">
+                <img class="card-icon" src="{{ url_for('static', filename='icon1.png') }}" alt="">
+                <div class="card-title">Generate Image</div>
+                <div class="card-desc">Enter a text prompt or upload an existing image. VisioCraft AI instantly creates high-quality visuals using advanced AI models.</div>
+            </div>
+            <div class="card">
+                <img class="card-icon" src="{{ url_for('static', filename='icon2.png') }}" alt="">
+                <div class="card-title">Select &amp; Reposition Any Object</div>
+                <div class="card-desc">Click on objects to move, remove, or replace them. Smart object detection and segmentation let you edit anything with one tap.</div>
+            </div>
+            <div class="card">
+                <img class="card-icon" src="{{ url_for('static', filename='icon3.png') }}" alt="">
+                <div class="card-title">Auto-Rebuild &amp; Download</div>
+                <div class="card-desc">VisioCraft AI automatically repairs the background, enhances details, and finalizes your image. Export your polished creation in seconds.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+const auth = getAuth(initializeApp({
+    apiKey: "AIzaSyBJYEpbNJFWmfG6-ZlO_gt55LGxBW64T5A",
+    authDomain: "visiocraft-d55a9.firebaseapp.com",
+    projectId: "visiocraft-d55a9",
+    storageBucket: "visiocraft-d55a9.firebasestorage.app",
+    messagingSenderId: "183906867290",
+    appId: "1:183906867290:web:30aac496a1a345a75ca063"
+}));
+</script>
+</body>
+</html>

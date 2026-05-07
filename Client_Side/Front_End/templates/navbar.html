@@ -1,0 +1,126 @@
+<style>
+    .navbar-wrapper {
+        padding: 16px 40px;
+        position: relative; z-index: 10;
+        flex-shrink: 0;
+    }
+    nav {
+        display: flex; align-items: center;
+        padding: 14px 30px;
+        background: #fff;
+        border-radius: 16px;
+        border: 1.5px solid #c8dff7;
+        box-shadow: 0 2px 16px rgba(24,66,157,0.1);
+    }
+    .nav-logo img { width: 52px; height: 52px; object-fit: contain; margin-right: 40px; cursor: pointer; }
+    .nav-links { display: flex; gap: 50px; flex: 1; }
+    .nav-links a {
+        text-decoration: none; color: #18429D;
+        font-size: 1.3rem; font-weight: 700;
+        padding-bottom: 3px;
+        border-bottom: 2.5px solid transparent;
+        transition: all 0.2s;
+    }
+    .nav-links a:hover { font-size: 1.4rem; border-bottom: 2.5px solid #18429D; }
+    .nav-links a.active { border-bottom: 2.5px solid #18429D; }
+    .btn-logout {
+        background: #18429D; color: #fff; border: none;
+        padding: 12px 28px; border-radius: 20px;
+        font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-logout:hover { background: #132f74; }
+    .btn-get-started {
+        background: #18429D; color: #fff; border: none;
+        padding: 12px 28px; border-radius: 20px;
+        font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        text-decoration: none; display: inline-block;
+    }
+    .btn-get-started:hover { background: #132f74; }
+
+    /* ── TOAST ── */
+    #toast-container {
+        position: fixed; bottom: 30px; right: 30px;
+        display: flex; flex-direction: column; gap: 10px;
+        z-index: 9999; pointer-events: none;
+    }
+    .toast {
+        display: flex; align-items: center; gap: 12px;
+        padding: 14px 20px; border-radius: 12px;
+        font-size: 0.95rem; font-weight: 600;
+        color: #fff; min-width: 260px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        animation: toastIn 0.3s ease forwards;
+        pointer-events: all;
+    }
+    .toast.success { background: #18429D; }
+    .toast.error   { background: #e03e3e; }
+    .toast.info    { background: #2E8FAD; }
+    .toast.hiding  { animation: toastOut 0.3s ease forwards; }
+    .toast-icon    { font-size: 1.1rem; }
+    @keyframes toastIn  { from { opacity:0; transform: translateX(60px); } to { opacity:1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity:1; transform: translateX(0); } to { opacity:0; transform: translateX(60px); } }
+
+    /* ── PAGE TRANSITION ── */
+    .page-fade { animation: pageFadeIn 0.35s ease forwards; }
+    @keyframes pageFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<div class="navbar-wrapper">
+    <nav>
+        <div class="nav-logo">
+            <a href="/home"><img src="{{ url_for('static', filename='logo.png') }}" alt="VisioCraft Logo"></a>
+        </div>
+        <div class="nav-links">
+            <a href="/home" {% if active_page == 'home' %}class="active"{% endif %}>Home</a>
+            <a href="/about" {% if active_page == 'about' %}class="active"{% endif %}>About Us</a>
+            <a href="/contact" {% if active_page == 'contact' %}class="active"{% endif %}>Contact Us</a>
+        </div>
+        {% if show_logout %}
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        {% else %}
+            <a href="/home" class="btn-get-started">Get Started</a>
+        {% endif %}
+    </nav>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+    // ── PAGE FADE IN ──
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('.page') && document.querySelector('.page').classList.add('page-fade');
+    });
+
+    // ── PAGE FADE OUT on navigation ──
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href]');
+        if (link && !link.href.startsWith('javascript') && link.target !== '_blank' && link.origin === location.origin) {
+            e.preventDefault();
+            const page = document.querySelector('.page');
+            if (page) {
+                page.style.animation = 'none';
+                page.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                page.style.opacity = '0';
+                page.style.transform = 'translateY(-8px)';
+                setTimeout(() => { window.location.href = link.href; }, 260);
+            } else {
+                window.location.href = link.href;
+            }
+        }
+    });
+
+    // ── TOAST FUNCTION ──
+    window.showToast = (message, type = 'info') => {
+        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span class="toast-icon">${icons[type]}</span><span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 320);
+        }, 3000);
+    };
+</script>

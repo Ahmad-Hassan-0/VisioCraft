@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisioCraft AI</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; font-family: 'Overlook', 'Inter', sans-serif; background: #fff; }
+.page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.hero-image { position: absolute; top: 30%; left: 0; width: 100%; height: 70%; object-fit: cover; object-position: center top; opacity: 0.45; z-index: 0; pointer-events: none; }
+
+.hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 100px; text-align: center; position: relative; z-index: 5; }
+.hero h1 { font-size: 4.8rem; font-weight: 700; color: #18429D; margin-bottom: 14px; }
+.hero .tagline { font-size: 2.3rem; font-weight: 600; color: #2E8FAD; margin-bottom: 36px; line-height: 1.5; }
+.hero-mid { position: relative; display: flex; justify-content: center; align-items: center; gap: 24px; z-index: 5; }
+.btn-hero { background: #18429D; color: #fff; border: none; padding: 18px 44px; border-radius: 14px; font-size: 1.3rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-block; }
+.btn-hero:hover { background: #132f74; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(24,66,157,0.3); }
+
+.orb { position: absolute; border-radius: 50%; pointer-events: none; }
+.orb1 { width:20px; height:20px; background:#b57bee; top:-20px; left:-180px; }
+.orb2 { width:12px; height:12px; background:#d87ecf; top:30px;  left:-120px; }
+.orb3 { width:10px; height:10px; background:#9b6fe0; top:55px;  left:-60px;  }
+.orb4 { width:16px; height:16px; background:#7ec8e3; top:-5px;  left:-300px; }
+.orb5 { width:22px; height:22px; background:#b57bee; top:-20px; right:-180px;}
+.orb6 { width:14px; height:14px; background:#d87ecf; top:30px;  right:-120px;}
+.orb7 { width:10px; height:10px; background:#9b6fe0; top:55px;  right:-60px; }
+.orb8 { width:18px; height:18px; background:#7b9fe8; top:-5px;  right:-300px;}
+</style>
+</head>
+<body>
+<div class="page">
+    <img src="{{ url_for('static', filename='bg1.png') }}" alt="" class="hero-image">
+
+    {% include 'navbar.html' %}
+
+    <div class="hero">
+        <h1>Welcome to VisioCraft AI</h1>
+        <p class="tagline">Layer Your Imagination,<br>Effortlessly!</p>
+        <div class="hero-mid">
+            <div class="orb orb1"></div><div class="orb orb2"></div>
+            <div class="orb orb3"></div><div class="orb orb4"></div>
+            <div class="orb orb5"></div><div class="orb orb6"></div>
+            <div class="orb orb7"></div><div class="orb orb8"></div>
+            <a href="/generate" class="btn-hero">Generate Image</a>
+            <input type="file" id="uploadInput" accept="image/*" style="display:none" onchange="handleUpload(event)">
+            <button class="btn-hero" onclick="document.getElementById('uploadInput').click()">Upload Image</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+const auth = getAuth(initializeApp({
+    apiKey: "AIzaSyBJYEpbNJFWmfG6-ZlO_gt55LGxBW64T5A",
+    authDomain: "visiocraft-d55a9.firebaseapp.com",
+    projectId: "visiocraft-d55a9",
+    storageBucket: "visiocraft-d55a9.firebasestorage.app",
+    messagingSenderId: "183906867290",
+    appId: "1:183906867290:web:30aac496a1a345a75ca063"
+}));
+window.logout = async () => { await signOut(auth); window.location.href = '/login'; };
+window.handleUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+        const sessionRes  = await fetch('/api/session/create', { method: 'POST' });
+        const sessionData = await sessionRes.json();
+        const sessionId   = sessionData.session_id;
+        const fd = new FormData();
+        fd.append('file', file); fd.append('session_id', sessionId);
+        const uploadRes  = await fetch('/api/upload', { method: 'POST', body: fd });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success) {
+            window.location.href = '/canvas?session_id=' + sessionId + '&from=upload';
+        } else { alert('Upload failed: ' + uploadData.error); }
+    } catch (e) { alert('Error uploading: ' + e); }
+};
+</script>
+</body>
+</html>

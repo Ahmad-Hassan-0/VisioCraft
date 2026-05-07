@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisioCraft AI - Generate</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; font-family: 'Overlook', 'Inter', sans-serif; background: #fff; }
+.page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.hero-image { position: absolute; top: 30%; left: 0; width: 100%; height: 70%; object-fit: cover; object-position: center top; opacity: 0.45; z-index: 0; pointer-events: none; }
+
+#promptView { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 100px; text-align: center; position: relative; z-index: 5; }
+#promptView h1 { font-size: 4.8rem; font-weight: 700; color: #18429D; margin-bottom: 14px; }
+#promptView .tagline { font-size: 2.3rem; font-weight: 600; color: #2E8FAD; margin-bottom: 40px; line-height: 1.5; }
+
+.prompt-bar { display: flex; align-items: center; background: #fff; border-radius: 50px; border: 2.5px solid transparent; outline: 2.5px solid #2E8FAD; box-shadow: 0 4px 24px rgba(0,0,0,0.12); padding: 10px 10px 10px 28px; width: min(680px, 90vw); position: relative; z-index: 5; }
+.prompt-bar input { flex: 1; border: none; outline: none; font-size: 1.1rem; color: #333; background: transparent; font-family: inherit; }
+.prompt-bar input::placeholder { color: #aaa; }
+.btn-generate { background: #18429D; color: #fff; border: none; padding: 14px 28px; border-radius: 40px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.btn-generate:hover { background: #132f74; }
+
+.orb { position: absolute; border-radius: 50%; pointer-events: none; }
+.orb1 { width:20px; height:20px; background:#b57bee; top:10px;  left:-220px; }
+.orb2 { width:12px; height:12px; background:#d87ecf; top:50px;  left:-140px; }
+.orb3 { width:10px; height:10px; background:#9b6fe0; top:60px;  left:-60px;  }
+.orb4 { width:16px; height:16px; background:#7ec8e3; top:-10px; left:-340px; }
+.orb5 { width:22px; height:22px; background:#b57bee; top:10px;  right:-220px;}
+.orb6 { width:14px; height:14px; background:#d87ecf; top:50px;  right:-140px;}
+.orb7 { width:10px; height:10px; background:#9b6fe0; top:60px;  right:-60px; }
+.orb8 { width:18px; height:18px; background:#7b9fe8; top:-10px; right:-340px;}
+
+.loading { display:none; margin-top:20px; color:#18429D; font-size:1rem; z-index:5; position:relative; }
+.spinner { border: 3px solid #f3f3f3; border-top: 3px solid #18429D; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+@keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+#resultView { display: none; flex: 1; padding: 20px 40px 10px; position: relative; z-index: 5; overflow: hidden; }
+.result-layout { display: flex; gap: 0; height: 100%; align-items: flex-start; justify-content: center; }
+
+.toolbar { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; align-self: flex-start; padding-top: 50px; }
+.toolbar:hover .tool-btn { width: 175px; gap: 10px; padding: 11px 16px 11px 14px; justify-content: flex-start; }
+.toolbar:hover .tool-btn .label { opacity: 1; width: auto; }
+.toolbar:hover .tool-btn:hover { background: #132f74; box-shadow: -4px 4px 16px rgba(24,66,157,0.35); }
+.tool-btn { display: flex; align-items: center; background: #18429D; color: #fff; border: none; border-radius: 50px 0 0 50px; padding: 11px 11px 11px 13px; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; overflow: hidden; width: 48px; height: 44px; justify-content: center; gap: 0; position: relative; }
+.tool-btn .icon { width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.tool-btn .icon img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+.tool-btn .label { font-size: 0.82rem; font-weight: 600; overflow: hidden; white-space: nowrap; opacity: 0; width: 0; pointer-events: none; transition: opacity 0.15s; }
+
+/* Tooltip */
+.tool-btn .tooltip {
+    position: absolute; left: 56px; top: 50%; transform: translateY(-50%);
+    background: #18429D; color: #fff; padding: 5px 10px;
+    border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+    white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity 0.15s;
+    box-shadow: 0 4px 12px rgba(24,66,157,0.3);
+}
+.tool-btn .tooltip::before { content:''; position:absolute; right:100%; top:50%; transform:translateY(-50%); border:5px solid transparent; border-right-color:#18429D; }
+.tool-btn:not(:hover) + * .tooltip, .toolbar:hover .tool-btn .tooltip { opacity: 0 !important; }
+.tool-btn:hover .tooltip { opacity: 1; }
+.toolbar:hover .tool-btn .tooltip { opacity: 0; }
+
+.canvas-area { width: min(1100px, 85vw); flex: none; border: 2px solid #2E8FAD; border-radius: 16px; background: #fff; display: flex; align-items: center; justify-content: center; height: calc(100vh - 240px); overflow: hidden; padding: 0; position: relative; }
+.canvas-area img { max-width: 70%; max-height: 70%; border-radius: 10px; object-fit: contain; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+
+.btn-proceed { position: absolute; bottom: 16px; right: 16px; background: #18429D; color: #fff; border: none; padding: 14px 36px; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; z-index: 10; }
+.btn-proceed:hover { background: #132f74; transform: translateY(-2px); }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 20px; padding: 40px 50px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); min-width: 280px; }
+.modal h3 { color: #18429D; margin-bottom: 28px; font-size: 1.3rem; }
+.format-btns { display: flex; flex-direction: column; gap: 14px; }
+.fmt-btn { background: #18429D; color: #fff; border: none; padding: 14px 28px; border-radius: 20px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.fmt-btn:hover { background: #132f74; transform: translateY(-2px); }
+.fmt-cancel { margin-top: 16px; background: none; border: none; color: #999; cursor: pointer; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+    <img src="{{ url_for('static', filename='bg1.png') }}" alt="" class="hero-image">
+
+    {% include 'navbar.html' %}
+
+    <div id="promptView">
+        <h1>Welcome to VisioCraft AI</h1>
+        <p class="tagline">Layer Your Imagination,<br>Effortlessly!</p>
+        <div style="position:relative;">
+            <div class="orb orb1"></div><div class="orb orb2"></div>
+            <div class="orb orb3"></div><div class="orb orb4"></div>
+            <div class="orb orb5"></div><div class="orb orb6"></div>
+            <div class="orb orb7"></div><div class="orb orb8"></div>
+            <div class="prompt-bar">
+                <input type="text" id="promptInput" placeholder="Enter your text Prompt here...">
+                <button class="btn-generate" onclick="generateImage()">Generate</button>
+            </div>
+        </div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Generating your image...</p>
+        </div>
+    </div>
+
+    <div id="resultView">
+        <div class="result-layout">
+            <div class="toolbar">
+                <button class="tool-btn" onclick="deleteResult()">
+                    <span class="icon"><img src="{{ url_for('static', filename='deleteicon.png') }}" alt=""></span>
+                    <span class="label">Delete</span>
+                    <span class="tooltip">Delete</span>
+                </button>
+                <button class="tool-btn" onclick="showDownloadModal()">
+                    <span class="icon"><img src="{{ url_for('static', filename='downloadicon.png') }}" alt=""></span>
+                    <span class="label">Download</span>
+                    <span class="tooltip">Download</span>
+                </button>
+                <button class="tool-btn" onclick="regenerate()">
+                    <span class="icon"><img src="{{ url_for('static', filename='retryicon.png') }}" alt=""></span>
+                    <span class="label">Retry</span>
+                    <span class="tooltip">Retry</span>
+                </button>
+            </div>
+            <div class="canvas-area">
+                <img id="resultImg" src="" alt="Generated Image">
+                <button class="btn-proceed" onclick="proceedEditing()">Proceed Editing</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3>Choose Download Format</h3>
+        <div class="format-btns">
+            <button class="fmt-btn" onclick="downloadAs('png')">PNG</button>
+            <button class="fmt-btn" onclick="downloadAs('jpg')">JPG</button>
+            <button class="fmt-btn" onclick="downloadAs('jpeg')">JPEG</button>
+        </div>
+        <button class="fmt-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+const auth = getAuth(initializeApp({
+    apiKey: "AIzaSyBJYEpbNJFWmfG6-ZlO_gt55LGxBW64T5A",
+    authDomain: "visiocraft-d55a9.firebaseapp.com",
+    projectId: "visiocraft-d55a9",
+    storageBucket: "visiocraft-d55a9.firebasestorage.app",
+    messagingSenderId: "183906867290",
+    appId: "1:183906867290:web:30aac496a1a345a75ca063"
+}));
+
+// ── AUTH GUARD ──
+onAuthStateChanged(auth, (user) => { if (!user) window.location.href = '/login'; });
+window.logout = async () => { await signOut(auth); showToast('Logged out', 'info'); setTimeout(() => window.location.href = '/login', 800); };
+
+let sessionId = null;
+let generatedImageUrl = null;
+const res  = await fetch('/api/session/create', { method: 'POST' });
+const data = await res.json();
+sessionId  = data.session_id;
+
+window.generateImage = async () => {
+    const prompt = document.getElementById('promptInput').value.trim();
+    if (!prompt) { showToast('Please enter a prompt', 'error'); return; }
+    document.getElementById('loading').style.display = 'block';
+    showToast('Generating your image...', 'info');
+    try {
+        const res  = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, session_id: sessionId }) });
+        const data = await res.json();
+        if (data.success) {
+            generatedImageUrl = data.image_url;
+            document.getElementById('resultImg').src = generatedImageUrl + '?t=' + Date.now();
+            document.getElementById('promptView').style.display = 'none';
+            document.getElementById('resultView').style.display = 'block';
+            showToast('Image generated!', 'success');
+        } else { showToast('Failed: ' + data.error, 'error'); }
+    } catch(e) { showToast('Error generating image', 'error'); }
+    finally { document.getElementById('loading').style.display = 'none'; }
+};
+window.proceedEditing = () => { window.location.href = '/canvas?session_id=' + sessionId; };
+window.deleteResult = () => { document.getElementById('resultView').style.display = 'none'; document.getElementById('promptView').style.display = 'flex'; document.getElementById('promptInput').value = ''; generatedImageUrl = null; showToast('Image deleted', 'info'); };
+window.regenerate = () => { document.getElementById('resultView').style.display = 'none'; document.getElementById('promptView').style.display = 'flex'; showToast('Enter a new prompt to regenerate', 'info'); };
+window.showDownloadModal = () => { document.getElementById('modalOverlay').classList.add('show'); };
+window.closeModal = () => { document.getElementById('modalOverlay').classList.remove('show'); };
+window.downloadAs = async (format) => {
+    closeModal();
+    if (!generatedImageUrl) return;
+    showToast('Downloading...', 'info');
+    const response = await fetch(generatedImageUrl);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `visiocraft_generated.${format}`; a.click();
+    URL.revokeObjectURL(url);
+    showToast('Downloaded!', 'success');
+};
+document.getElementById('promptInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') window.generateImage(); });
+</script>
+</body>
+</html>

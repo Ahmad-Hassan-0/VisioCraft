@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisioCraft AI - Contact Us</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; font-family: 'Overlook', 'Inter', sans-serif; background: #fff; }
+        .page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .hero-image { position: absolute; top: 30%; left: 0; width: 100%; height: 70%; object-fit: cover; object-position: center top; opacity: 0.38; z-index: 0; pointer-events: none; }
+
+        .main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 5; padding: 0 60px; gap: 20px; margin-top: -60px; }
+        .contact-title { font-size: 3.8rem; font-weight: 700; color: #18429D; text-align: center; }
+
+        .contact-card { display: flex; border-radius: 24px; overflow: hidden; width: 100%; max-width: 1200px; height: 600px; box-shadow: 0 4px 30px rgba(24,66,157,0.15), 0 0 60px 10px rgba(46,143,173,0.12); }
+        .form-side { background: #18429D; padding: 44px 44px; flex: 0 0 55%; display: flex; flex-direction: column; gap: 28px; }
+        .form-side h2 { color: #fff; font-size: 2.2rem; font-weight: 700; margin-bottom: 4px; }
+
+        .form-side input, .form-side textarea {
+            width: 100%; background: #fff; border: 2px solid transparent;
+            border-radius: 10px; padding: 16px 18px;
+            font-size: 1rem; font-family: inherit; color: #333;
+            outline: none; resize: none; transition: border 0.2s;
+        }
+        .form-side input::placeholder, .form-side textarea::placeholder { color: #aaa; }
+        .form-side textarea { flex: 1; }
+        .form-side input.error, .form-side textarea.error { border: 2px solid #ff4d4d; background: #fff5f5; }
+        .field-error { color: #ffaaaa; font-size: 0.78rem; font-weight: 600; margin-top: -18px; }
+
+        .checkbox-row { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.8); font-size: 0.88rem; }
+        .checkbox-row input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+        .btn-submit { background: #fff; color: #18429D; border: none; padding: 14px 36px; border-radius: 50px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; align-self: flex-start; }
+        .btn-submit:hover { background: #e8eeff; transform: translateY(-2px); }
+
+        .image-side { flex: 0 0 45%; overflow: hidden; background: #f0f4ff; display: flex; align-items: flex-end; justify-content: flex-start; }
+        .image-side img { width: 170%; height: auto; transform-origin: left bottom; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <img src="{{ url_for('static', filename='bg1.png') }}" alt="" class="hero-image">
+
+    {% include 'navbar.html' %}
+
+    <div class="main">
+        <h1 class="contact-title">Contact Us</h1>
+        <div class="contact-card">
+            <div class="form-side">
+                <h2>Get in touch</h2>
+                <div>
+                    <input type="text" id="nameInput" placeholder="Name">
+                    <p class="field-error" id="nameError" style="display:none">Name is required</p>
+                </div>
+                <div>
+                    <input type="email" id="emailInput" placeholder="Email">
+                    <p class="field-error" id="emailError" style="display:none">Valid email is required</p>
+                </div>
+                <textarea id="messageInput" placeholder="Message"></textarea>
+                <p class="field-error" id="messageError" style="display:none">Message is required</p>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="newsletter">
+                    <label for="newsletter">I would like to receive the newsletter.</label>
+                </div>
+                <button class="btn-submit" onclick="submitForm()">Submit</button>
+            </div>
+            <div class="image-side">
+                <img src="{{ url_for('static', filename='bg2.png') }}" alt="Contact">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+getAuth(initializeApp({
+    apiKey: "AIzaSyBJYEpbNJFWmfG6-ZlO_gt55LGxBW64T5A",
+    authDomain: "visiocraft-d55a9.firebaseapp.com",
+    projectId: "visiocraft-d55a9",
+    storageBucket: "visiocraft-d55a9.firebasestorage.app",
+    messagingSenderId: "183906867290",
+    appId: "1:183906867290:web:30aac496a1a345a75ca063"
+}));
+</script>
+
+<script>
+function submitForm() {
+    const name    = document.getElementById('nameInput');
+    const email   = document.getElementById('emailInput');
+    const message = document.getElementById('messageInput');
+    let valid = true;
+
+    // Reset
+    [name, email, message].forEach(f => f.classList.remove('error'));
+    ['nameError','emailError','messageError'].forEach(id => document.getElementById(id).style.display = 'none');
+
+    if (!name.value.trim()) {
+        name.classList.add('error');
+        document.getElementById('nameError').style.display = 'block';
+        valid = false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.value.trim() || !emailRegex.test(email.value)) {
+        email.classList.add('error');
+        document.getElementById('emailError').style.display = 'block';
+        valid = false;
+    }
+    if (!message.value.trim()) {
+        message.classList.add('error');
+        document.getElementById('messageError').style.display = 'block';
+        valid = false;
+    }
+    if (!valid) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+    showToast('Message sent successfully!', 'success');
+    name.value = ''; email.value = ''; message.value = '';
+    document.getElementById('newsletter').checked = false;
+}
+</script>
+</body>
+</html>

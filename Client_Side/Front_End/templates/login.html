@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - VisioCraft AI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Overlook',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#18429D;}
+.card{display:flex;width:min(1200px,96vw);height:680px;border-radius:18px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.4);}
+.left{width:55%;background:#fff;display:flex;flex-direction:column;justify-content:center;padding:60px 60px;}
+h1{font-size:2rem;font-weight:700;color:#111;margin-bottom:8px;}
+.sub{font-size:.9rem;color:#555;margin-bottom:32px;}
+label{display:block;font-size:.82rem;font-weight:600;color:#222;margin-bottom:7px;}
+.field{margin-bottom:22px;}
+.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.row label{margin-bottom:0;}
+input[type=email],input[type=password]{width:100%;padding:13px 14px;border:1px solid #d0d5dd;border-radius:8px;font-size:.9rem;outline:none;transition:border-color .2s;}
+input:focus{border-color:#18429D;}
+.check{display:flex;align-items:center;gap:8px;font-size:.82rem;color:#444;margin-bottom:24px;}
+.check input{width:auto;}
+.forgot{font-size:.82rem;color:#18429D;text-decoration:none;}
+.btn{width:100%;padding:14px;background:#18429D;color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:6px;}
+.btn:hover{background:#132f74;}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
+.divider{display:flex;align-items:center;gap:10px;margin:22px 0;color:#999;font-size:.82rem;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#e5e7eb;}
+.gbtn{width:100%;padding:13px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;font-size:.9rem;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;}
+.gbtn:hover{background:#f9f9f9;}
+.gico{width:18px;height:18px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E") no-repeat center/contain;}
+.switch{text-align:center;margin-top:20px;font-size:.85rem;color:#555;}
+.switch a{color:#18429D;font-weight:600;text-decoration:none;}
+#msg{font-size:.78rem;text-align:center;margin-top:8px;min-height:16px;}
+.right{width:45%;background:#2E8FAD url('{{ url_for("static", filename="bg.png") }}') center/cover no-repeat;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="left">
+    <h1>Welcome back!</h1>
+    <p class="sub">Enter your Credentials to access your account</p>
+    <div class="field"><label>Email address</label><input type="email" id="email" placeholder="Enter your email"></div>
+    <div class="field">
+      <div class="row"><label>Password</label><a href="/forget-password" class="forgot">forgot password</a></div>
+      <input type="password" id="password" placeholder="Password">
+    </div>
+    <div class="check"><input type="checkbox" id="rem"><label for="rem">Remember for 30 days</label></div>
+    <button class="btn" id="btn">Login</button>
+    <div id="msg"></div>
+    <div class="divider">Or</div>
+    <button class="gbtn" id="gBtn"><span class="gico"></span>Sign in with Google</button>
+    <div class="switch">Don't have an account? <a href="/">Sign Up</a></div>
+  </div>
+  <div class="right"></div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+const auth=getAuth(initializeApp({apiKey:"AIzaSyBJYEpbNJFWmfG6-ZlO_gt55LGxBW64T5A",authDomain:"visiocraft-d55a9.firebaseapp.com",projectId:"visiocraft-d55a9",storageBucket:"visiocraft-d55a9.firebasestorage.app",messagingSenderId:"183906867290",appId:"1:183906867290:web:30aac496a1a345a75ca063",measurementId:"G-EPMMT7V4LF"}));
+const msg=document.getElementById('msg');
+async function verify(user,btn){const t=await user.getIdToken();const r=await fetch('/api/verify-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:t})});if(r.ok)window.location.href='/Home';else{msg.style.color='red';msg.innerText='Server error.';btn.disabled=false;}}
+document.getElementById('btn').onclick=async()=>{const btn=document.getElementById('btn');msg.style.color='#2E8FAD';msg.innerText='Signing in...';btn.disabled=true;try{const r=await signInWithEmailAndPassword(auth,document.getElementById('email').value,document.getElementById('password').value);await verify(r.user,btn);}catch(e){msg.style.color='red';msg.innerText=e.message;btn.disabled=false;}};
+document.getElementById('gBtn').onclick=async()=>{try{const r=await signInWithPopup(auth,new GoogleAuthProvider());await verify(r.user,document.getElementById('gBtn'));}catch(e){msg.style.color='red';msg.innerText=e.message;}};
+</script>
+</body>
+</html>

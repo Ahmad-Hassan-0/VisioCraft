@@ -1,0 +1,20 @@
+# Secret keys
+serviceAccountKey.json
+
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Outputs & temp files
+outputs/
+temp/
+*.jpg
+*.png
+
+# Model files (too large for git)
+*.pt
