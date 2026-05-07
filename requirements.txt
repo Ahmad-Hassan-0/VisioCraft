@@ -1,18 +1,37 @@
-Flask==3.0.0 # Web Framework
-Werkzeug==3.0.1
+# ── VisioCraft AI Requirements ──────────────────────────────────────────────
+# This file contains all dependencies needed to run VisioCraft AI locally.
+# Install via: pip install -r requirements.txt
 
-opencv-python==4.8.1.78 # Image Processing
-Pillow==10.1.0
-numpy==1.24.3
-scipy==1.11.4
-scikit-image
+# Web Framework & Server
+Flask>=3.0.0
+Werkzeug>=3.0.1
+flask-cors>=4.0.0
 
-torch>=1.9.0 # SAM Segmentation
-torchvision>=0.10.0
-ultralytics
+# Image Processing & Math
+opencv-python>=4.8.1.78
+Pillow>=10.1.0
+numpy>=1.26.0
+scipy>=1.11.4
+scikit-image>=0.22.0
 
-simple-lama-inpainting # Inpainting
+# AI & Machine Learning (SAM, Stable Diffusion, YOLO)
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.1.0        # For MobileSAM and YOLO detection
+diffusers>=0.27.0         # For Local Stable Diffusion Inpainting
+transformers>=4.38.0      # For Diffusion tokenizers and models
+accelerate>=0.28.0        # For optimized model loading
+safetensors>=0.4.0        # For secure model weights loading
+huggingface-hub>=0.20.0   # For model downloading
+peft>=0.9.0               # For parameter-efficient fine-tuning support
 
-requests==2.31.0 # HTTP
+# Inpainting Specifics
+simple-lama-inpainting>=0.1.2
 
-firebase-admin # Firebase
+# External Services & APIs
+requests>=2.31.0          # For Pollinations and HF Inference APIs
+firebase-admin>=6.4.0     # For user authentication and storage
+
+# Optional Optimizations (Recommended for GPU users)
+# xformers>=0.0.24        # Uncomment for memory-efficient attention (NVIDIA only)
+# bitsandbytes>=0.42.0    # Uncomment for 8-bit quantization support (Linux only)

@@ -74,10 +74,11 @@
         .btn-proceed.show { display: block; }
         .btn-proceed:hover { background: #132f74; transform: translateY(-2px); }
 
-        .loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(255,255,255,0.97); padding: 40px 50px; border-radius: 20px; display: none; z-index: 1000; text-align: center; box-shadow: 0 20px 60px rgba(24,66,157,0.2); border: 2px solid #2E8FAD; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #18429D; border-radius: 50%; width: 46px; height: 46px; animation: spin 0.9s linear infinite; margin: 0 auto 14px; }
-        .loading-text { color: #18429D; font-weight: 700; font-size: 0.95rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(255,255,255,0.97); padding: 40px 50px; border-radius: 20px; display: none; z-index: 1000; text-align: center; box-shadow: 0 20px 60px rgba(24,66,157,0.2); border: 2px solid #2E8FAD; min-width: 340px; }
+        .progress-container { width: 100%; height: 12px; background: #f0f4ff; border-radius: 6px; overflow: hidden; margin: 18px 0; border: 1px solid #dde3f0; }
+        .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #18429D, #2E8FAD); transition: width 0.3s ease; }
+        .loading-percentage { font-size: 1.8rem; font-weight: 900; color: #18429D; letter-spacing: -1px; }
+        .loading-text { color: #555; font-weight: 600; font-size: 0.85rem; margin-top: 5px; }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 500; align-items: center; justify-content: center; }
         .modal-overlay.show { display: flex; }
@@ -107,21 +108,20 @@
                 <div class="popup" id="inpaintPopup">
                     <h4>Inpainting Method</h4>
                     <select id="inpaintMethod">
-                        <option value="sd">🤖 Stable Diffusion (Best)</option>
-                        <option value="lama">🧠 LaMa AI (Fast)</option>
+                        <option value="diffusers">🤖 Stable Diffusion (Local)</option>
                         <option value="opencv">⚡ OpenCV (Fallback)</option>
                     </select>
                     <button class="go-btn" onclick="inpaintBackground()">Fill Now →</button>
                 </div>
             </div>
             <div class="popup-wrapper">
-                <button class="tool-btn" id="composeBtn" onclick="togglePopup('composePopup')" disabled><span class="icon"><img src="{{ url_for('static', filename='compositionicon.png') }}" alt=""></span><span class="label">Composition</span><span class="tooltip">Composition</span></button>
+                <button class="tool-btn" id="composeBtn" onclick="enterCompositionMode()" disabled><span class="icon"><img src="{{ url_for('static', filename='compositionicon.png') }}" alt=""></span><span class="label">Composition</span><span class="tooltip">Composition</span></button>
                 <div class="popup" id="composePopup">
                     <h4>Object Controls</h4>
                     <div class="ctrl-row"><label>Rotation <span id="rotationValue">0°</span></label><input type="range" id="rotationSlider" min="-180" max="180" value="0" oninput="updateTransform()"></div>
                     <div class="ctrl-row"><label>Scale <span id="scaleValue">100%</span></label><input type="range" id="scaleSlider" min="10" max="200" value="100" oninput="updateTransform()"></div>
                     <div class="ctrl-row"><label>Opacity <span id="opacityValue">100%</span></label><input type="range" id="opacitySlider" min="0" max="100" value="100" oninput="updateTransform()"></div>
-                    <div class="popup-actions"><button class="reset" onclick="resetComposition()">Reset</button><button class="apply" onclick="startComposition()">Apply →</button></div>
+                    <div class="popup-actions"><button class="reset" onclick="resetComposition()">Reset</button><button class="apply" onclick="document.getElementById('composePopup').classList.remove('open');">Done</button></div>
                 </div>
             </div>
             <div class="tool-divider"></div>
@@ -150,7 +150,11 @@
     </div>
 </div>
 
-<div class="loading" id="loading"><div class="spinner"></div><div class="loading-text" id="loadingText">Processing...</div></div>
+<div class="loading" id="loading">
+    <div class="loading-percentage" id="loadingPercentage">0%</div>
+    <div class="progress-container"><div class="progress-bar-fill" id="progressBarFill"></div></div>
+    <div class="loading-text" id="loadingText">Processing...</div>
+</div>
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
         <h3>Choose Download Format</h3>
@@ -232,20 +236,100 @@ async function loadImageOnCanvas(url){
     });
 }
 
-canvas.addEventListener('mousedown',(e)=>{if(!currentImage)return;if(compositionMode){handleCompositionMouseDown(e);return;}if(selectionComplete)return;const{x,y}=getCoords(e);isDragging=true;dragPath=[{x,y}];clickPoints=[{x,y,label:1}];});
-canvas.addEventListener('mousemove',(e)=>{const{x,y}=getCoords(e);if(compositionMode&&isDraggingObject){handleCompositionMouseMove(e);return;}if(isDragging&&currentImage){dragPath.push({x,y});clickPoints.push({x,y,label:1});if(dragPath.length%2===0)drawDragPath();}});
-canvas.addEventListener('mouseup',async(e)=>{if(compositionMode){handleCompositionMouseUp(e);return;}if(!isDragging||!currentImage)return;isDragging=false;const{x,y}=getCoords(e);dragPath.push({x,y});clickPoints.push({x,y,label:1});if(clickPoints.length>10)await performSegmentation();});
-function getCoords(e){const r=canvas.getBoundingClientRect();return{x:Math.round((e.clientX-r.left)*(canvas.width/r.width)),y:Math.round((e.clientY-r.top)*(canvas.height/r.height))};}
-function drawDragPath(){if(!currentImage||dragPath.length<3)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(currentImage,0,0);ctx.fillStyle='rgba(46,143,173,0.2)';ctx.strokeStyle='#18429D';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(dragPath[0].x,dragPath[0].y);dragPath.forEach(p=>ctx.lineTo(p.x,p.y));ctx.closePath();ctx.fill();ctx.stroke();}
+canvas.addEventListener('mousedown',(e)=>{
+    if(!currentImage)return;
+    if(compositionMode){handleCompositionMouseDown(e);return;}
+    if(selectionComplete)return;
+    const{x,y}=getCoords(e);
+    isDragging=true;
+    dragPath=[{x,y}];
+    clickPoints=[{x,y,label:1}];
+});
+canvas.addEventListener('mousemove',(e)=>{
+    const{x,y}=getCoords(e);
+    if(compositionMode&&isDraggingObject){handleCompositionMouseMove(e);return;}
+    if(isDragging&&currentImage){
+        // ONLY add point if we've moved at least 10px from the last recorded point
+        const lastPt = clickPoints[clickPoints.length-1];
+        const dist = Math.sqrt(Math.pow(x-lastPt.x, 2) + Math.pow(y-lastPt.y, 2));
+        if(dist > 10) {
+            dragPath.push({x,y});
+            clickPoints.push({x,y,label:1});
+        }
+        // Always draw for smooth UI, but only record points when moved enough
+        if(isDragging) drawDragPath(); 
+    }
+});
+canvas.addEventListener('mouseup',async(e)=>{
+    if(compositionMode){handleCompositionMouseUp(e);return;}
+    if(!isDragging||!currentImage)return;
+    isDragging=false;
+    const{x,y}=getCoords(e);
+    const lastPt = clickPoints[clickPoints.length-1];
+    if(x !== lastPt.x || y !== lastPt.y) {
+        dragPath.push({x,y});
+        clickPoints.push({x,y,label:1});
+    }
+    if(clickPoints.length >= 1) await performSegmentation();
+});
+
+function getCoords(e){
+    const r=canvas.getBoundingClientRect();
+    return {
+        x:Math.round((e.clientX-r.left)*(canvas.width/r.width)),
+        y:Math.round((e.clientY-r.top)*(canvas.height/r.height))
+    };
+}
+
+function drawDragPath(){
+    if(!currentImage||dragPath.length<2)return;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(currentImage,0,0);
+    ctx.fillStyle='rgba(46,143,173,0.2)';
+    ctx.strokeStyle='#18429D';
+    ctx.lineWidth=2.5;
+    ctx.beginPath();
+    ctx.moveTo(dragPath[0].x,dragPath[0].y);
+    dragPath.forEach(p=>ctx.lineTo(p.x,p.y));
+    // Don't close path if we want a line, but for selection a closed path is better
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+}
 
 async function performSegmentation(){
     showLoading('Segmenting object...');
-    try{const res=await fetch('/api/segment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,points:clickPoints})});const data=await res.json();if(data.success){await loadPreview(data.preview_url);selectionComplete=true;setStep(2);document.getElementById('extractBtn').disabled=false;document.getElementById('retryBtn').disabled=false;showToast('Object selected! Now extract it.','success');}else{showToast('Segmentation failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+    console.log('Sending points to server:', clickPoints.length);
+    try{
+        const res=await fetch('/api/segment',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({session_id:sessionId,points:clickPoints})
+        });
+        const data=await res.json();
+        if(data.success){
+            await loadPreview(data.preview_url);
+            selectionComplete=true;
+            setStep(2);
+            document.getElementById('extractBtn').disabled=false;
+            document.getElementById('retryBtn').disabled=false;
+            showToast('Object selected! Now extract it.','success');
+        }else{
+            showToast('Segmentation failed: '+(data.error || 'Unknown error'),'error');
+            console.error('Server error:', data);
+        }
+    }catch(e){
+        showToast('Error: '+e.message,'error');
+        console.error('Fetch error:', e);
+        if(e.message.includes('fetch')) {
+            showToast('Connection lost or timeout. Is the server still running?','error');
+        }
+    }finally{hideLoading();}
 }
 async function loadPreview(url){return new Promise(r=>{const img=new Image();img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);r();};img.src=url+'?t='+Date.now();});}
 async function extractObject(){
     showLoading('Extracting object...');
-    try{const res=await fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId})});const data=await res.json();if(data.success){extractedObjectImg=new Image();extractedObjectImg.src=data.object_url+'?t='+Date.now();setStep(3);document.getElementById('fillBtn').disabled=false;showToast('Object extracted! Now fill the background.','success');}else{showToast('Failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+    try{const res=await fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId})});const data=await res.json();if(data.success){extractedObjectImg=new Image();extractedObjectImg.onload=()=>{setStep(3);document.getElementById('fillBtn').disabled=false;showToast('Object extracted! Now fill the background.','success');};extractedObjectImg.src=data.object_url+'?t='+Date.now();}else{showToast('Failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
 }
 function clearSelection(){clickPoints=[];dragPath=[];isDragging=false;selectionComplete=false;if(currentImage){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(currentImage,0,0);}document.getElementById('extractBtn').disabled=true;document.getElementById('retryBtn').disabled=true;setStep(1);showToast('Selection cleared','info');}
 function retryAction(){clearSelection();}
@@ -253,13 +337,63 @@ function retryAction(){clearSelection();}
 async function inpaintBackground(){
     document.getElementById('inpaintPopup').classList.remove('open');
     const method=document.getElementById('inpaintMethod').value;
+    
+    showLoading('Checking AI engine status...');
+    
+    // ── WAIT FOR WARMUP ──
+    let systemReady = false;
+    while(!systemReady) {
+        try {
+            const res = await fetch('/api/session/progress/'+sessionId);
+            const data = await res.json();
+            if(data.system_ready) {
+                systemReady = true;
+            } else {
+                updateProgress(0, "AI Engine is warming up... please wait.");
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        } catch(e) { break; }
+    }
+    
+    // User requested: "if warmup is done, proceed after 3 seconds"
+    updateProgress(100, "AI Engine ready! Finalizing in 3s...");
+    await new Promise(r => setTimeout(r, 3000));
+
     showLoading({sd:'🤖 SD AI (30–60s)...',lama:'🧠 LaMa...',opencv:'⚡ Fast fill...'}[method]||'Filling...');
     showToast('Filling background...','info');
-    try{const res=await fetch('/api/inpaint',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,method:method})});const data=await res.json();if(data.success){inpaintedBgUrl=data.inpainted_url;inpaintedBgImg=new Image();inpaintedBgImg.onload=async()=>{await loadResult(inpaintedBgUrl);setStep(4);currentResultUrl=inpaintedBgUrl;document.getElementById('composeBtn').disabled=false;document.getElementById('downloadBtn').disabled=false;document.getElementById('downloadFinalBtn').classList.add('show');showToast('Background filled!','success');};inpaintedBgImg.src=inpaintedBgUrl+'?t='+Date.now();}else{showToast('Failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+    try{
+        const res=await fetch('/api/inpaint',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({session_id:sessionId,method:method})
+        });
+        const data=await res.json();
+        if(data.success){
+            inpaintedBgUrl=data.inpainted_url;
+            inpaintedBgImg=new Image();
+            inpaintedBgImg.onload=async()=>{
+                await loadResult(inpaintedBgUrl);
+                setStep(4);
+                currentResultUrl=inpaintedBgUrl;
+                document.getElementById('composeBtn').disabled=false;
+                document.getElementById('downloadBtn').disabled=false;
+                document.getElementById('downloadFinalBtn').classList.add('show');
+                showToast('Background filled!','success');
+            };
+            inpaintedBgImg.src=inpaintedBgUrl+'?t='+Date.now();
+        }else{
+            showToast('Failed: '+data.error,'error');
+        }
+    }catch(e){
+        console.error(e);
+        showToast('Error: '+e,'error');
+    }finally{
+        hideLoading();
+    }
 }
 async function loadResult(url){return new Promise(r=>{const img=new Image();img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);r();};img.src=url+'?t='+Date.now();});}
 
-function startComposition(){document.getElementById('composePopup').classList.remove('open');if(!inpaintedBgImg||!extractedObjectImg){showToast('Missing images!','error');return;}compositionMode=true;canvas.classList.add('composition-mode');objectTransform={x:canvas.width/2,y:canvas.height/2,rotation:0,scale:1.0,opacity:1.0};renderComposition();showToast('Drag the object to reposition it','info');}
+function enterCompositionMode(){togglePopup('composePopup');if(!compositionMode){if(!inpaintedBgImg||!extractedObjectImg){showToast('Missing images!','error');return;}compositionMode=true;canvas.classList.add('composition-mode');objectTransform={x:canvas.width/2,y:canvas.height/2,rotation:0,scale:1.0,opacity:1.0};renderComposition();showToast('Drag the object to reposition it','info');}}
 function renderComposition(){if(!inpaintedBgImg||!extractedObjectImg)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(inpaintedBgImg,0,0,canvas.width,canvas.height);ctx.save();ctx.translate(objectTransform.x,objectTransform.y);ctx.rotate(objectTransform.rotation*Math.PI/180);ctx.scale(objectTransform.scale,objectTransform.scale);ctx.globalAlpha=objectTransform.opacity;ctx.drawImage(extractedObjectImg,-extractedObjectImg.width/2,-extractedObjectImg.height/2);ctx.restore();}
 function handleCompositionMouseDown(e){const{x,y}=getCoords(e);const hw=extractedObjectImg.width*objectTransform.scale/2,hh=extractedObjectImg.height*objectTransform.scale/2;if(x>=objectTransform.x-hw&&x<=objectTransform.x+hw&&y>=objectTransform.y-hh&&y<=objectTransform.y+hh){isDraggingObject=true;dragOffsetX=x-objectTransform.x;dragOffsetY=y-objectTransform.y;canvas.style.cursor='grabbing';}}
 function handleCompositionMouseMove(e){if(!isDraggingObject)return;const{x,y}=getCoords(e);objectTransform.x=x-dragOffsetX;objectTransform.y=y-dragOffsetY;renderComposition();}
@@ -269,16 +403,109 @@ function resetComposition(){objectTransform={x:canvas.width/2,y:canvas.height/2,
 
 async function downloadComposite(){
     showLoading('Saving...');
-    try{const res=await fetch('/api/compose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,transform:{x:Math.round(objectTransform.x),y:Math.round(objectTransform.y),rotation:objectTransform.rotation,scale:objectTransform.scale,opacity:objectTransform.opacity}})});const data=await res.json();if(data.success){window.open(data.composite_url,'_blank');showToast('Composite saved!','success');}else{showToast('Failed: '+data.error,'error');}}catch(e){showToast('Error: '+e,'error');}finally{hideLoading();}
+    try{
+        const res=await fetch('/api/compose',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                session_id:sessionId,
+                transform:{
+                    x:Math.round(objectTransform.x),
+                    y:Math.round(objectTransform.y),
+                    rotation:objectTransform.rotation,
+                    scale:objectTransform.scale,
+                    opacity:objectTransform.opacity
+                }
+            })
+        });
+        const data=await res.json();
+        if(data.success){
+            currentResultUrl=data.composite_url;
+            
+            // Fetch as blob to force browser download without navigating away
+            const imgRes = await fetch(currentResultUrl);
+            const blob = await imgRes.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = 'visiocraft-final.png';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+            
+            showToast('Composite downloaded!','success');
+            // Do NOT touch the canvas state; user can keep editing
+        }else{
+            showToast('Failed: '+data.error,'error');
+        }
+    }catch(e){
+        showToast('Error: '+e,'error');
+    }finally{
+        hideLoading();
+    }
 }
 function openModal(){document.getElementById('modalOverlay').classList.add('show');}
 function closeModal(){document.getElementById('modalOverlay').classList.remove('show');}
-function downloadAs(fmt){closeModal();if(!currentResultUrl)return;const a=document.createElement('a');a.href=currentResultUrl;a.download='visiocraft.'+fmt;a.click();showToast('Downloaded as '+fmt.toUpperCase(),'success');}
-function goBack(){window.location.href='/home';}
+async function downloadAs(fmt){
+    closeModal();
+    if(!currentResultUrl)return;
+    try {
+        const imgRes = await fetch(currentResultUrl);
+        const blob = await imgRes.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = `visiocraft.${fmt}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+        
+        showToast('Downloaded as '+fmt.toUpperCase(),'success');
+    } catch(e) {
+        console.error(e);
+        showToast('Download failed', 'error');
+    }
+}function goBack(){window.location.href='/home';}
 function zoomIn(){zoom*=1.2;canvas.style.transform=`scale(${zoom})`;canvas.style.transformOrigin='center';showToast('Zoomed in','info');}
 function zoomOut(){zoom/=1.2;canvas.style.transform=`scale(${zoom})`;canvas.style.transformOrigin='center';showToast('Zoomed out','info');}
-function showLoading(t){document.getElementById('loading').style.display='block';document.getElementById('loadingText').textContent=t;}
-function hideLoading(){document.getElementById('loading').style.display='none';}
+let progressInterval = null;
+function startProgressPolling(){
+    if(progressInterval) clearInterval(progressInterval);
+    progressInterval = setInterval(async()=>{
+        if(!sessionId) return;
+        try{
+            const res = await fetch('/api/session/progress/'+sessionId);
+            const data = await res.json();
+            if(data && data.percentage !== undefined){
+                updateProgress(data.percentage, data.message);
+            }
+        }catch(e){}
+    }, 500);
+}
+function stopProgressPolling(){ if(progressInterval) clearInterval(progressInterval); progressInterval = null; }
+function updateProgress(percent, text){
+    const bar = document.getElementById('progressBarFill');
+    const pct = document.getElementById('loadingPercentage');
+    const txt = document.getElementById('loadingText');
+    if(bar) bar.style.width = percent + '%';
+    if(pct) pct.textContent = percent + '%';
+    if(txt && text) txt.textContent = text;
+}
+function showLoading(t){
+    document.getElementById('loading').style.display='block';
+    updateProgress(0, t || 'Processing...');
+    startProgressPolling();
+}
+function hideLoading(){
+    document.getElementById('loading').style.display='none';
+    stopProgressPolling();
+}
 initSession();
 </script>
 </body>
