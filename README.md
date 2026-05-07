@@ -1,90 +1,103 @@
 # VisioCraft AI
-AI-powered object extraction, context-aware background fill, and image composition.
+
+**VisioCraft AI** is an advanced, AI-powered application for object extraction, context-aware background fill, and seamless image composition. It leverages state-of-the-art models for segmentation, detection, and generative inpainting.
+
 ---
 
-## Setup
+## 🚀 Features
+- **Object Extraction:** Auto-segment objects easily using Mobile SAM and GrabCut.
+- **Context-Aware Inpainting:** Fill backgrounds effortlessly with methods like Stable Diffusion and OpenCV fast inpainting.
+- **Image Generation:** Enhance and generate elements dynamically.
+- **Composition Canvas:** Reposition, scale, rotate, and layer extracted objects to build custom visuals.
+- **GPU Acceleration Support:** Optimized object processing using hardware acceleration.
+
+---
+
+## 🛠️ Project Architecture
+
+VisioCraft has been refactored into a clean, modular architecture to ensure scalability and maintainability.
+
+```text
+VisioCraft/
+├── app/
+│   ├── domain/           # Core business logic and data interfaces (Models, Interfaces)
+│   ├── infrastructure/   # External integrations (Detection, Generation, Inpainting, Segmentation)
+│   ├── routes/           # API Endpoints (Auth, Composition, Health, Uploads, etc.)
+│   └── services/         # Application workflow and logic managers
+├── models/               # Local AI models (e.g., mobile_sam.pt, yolov8n.pt)
+├── static/               # Static assets (CSS, JS, background images)
+├── templates/            # Frontend HTML templates
+├── config.py             # Centralized configuration settings
+├── main.py               # Application entry point
+├── requirements.txt      # Project dependencies
+└── README.md             # Project documentation
+```
+
+*(Note: Older monolithic components have been transitioned to the new `app/` module system)*
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Install Dependencies
+Make sure you have Python 3.8+ installed.
+
 ```bash
+# It is recommended to use a virtual environment
+python -m venv .venv
+
+# On Windows:
+.venv\Scripts\activate
+# On Linux/Mac:
+source .venv/bin/activate
+
 pip install -r requirements.txt
-python download_models.py   # one-time model download
+```
+
+### 2. Download Models
+Download the necessary AI models for local inference (like Mobile SAM and YOLO).
+```bash
+python download_models.py
+```
+
+### 3. Configure Environment Variables
+You can set up environment variables for API keys to use advanced cloud-based AI generation.
+```bash
+export OPENAI_API_KEY="your_openai_api_key"
+export HUGGINGFACE_TOKEN="your_huggingface_token"
+export STABILITY_API_KEY="your_stability_api_key"
+```
+*(Note: For Windows PowerShell, use `$env:KEY="value"` instead of `export`)*
+
+### 4. Run the Application
+Start the VisioCraft server:
+```bash
 python main.py
 ```
-Open `http://localhost:5000`
----
-
-## Project Structure
-```
-VisioCraft/
-├── main.py
-├── config.py
-├── requirements.txt
-├── .gitignore
-├── README.md
-├── static/bg.png
-├── models/
-│   ├── mobile_sam.pt
-│   └── yolov5s.pt
-├── Client_Side/
-│   ├── SessionManager.py
-│   └── Front_End/
-│       └── templates/
-│           ├── login.html
-│           ├── signup.html
-│           ├── forget_password.html
-│           ├── canvas.html
-│           └── generate.html
-└── Server_Side/
-    ├── Server_Network.py
-    ├── page_routes.py
-    ├── auth_routes.py
-    ├── image_routes.py
-    ├── Image_Processing/
-    │   ├── Image_Processing_Manager.py
-    │   ├── image_processor.py
-    │   ├── Image_Generation.py
-    │   └── Content_Aware_Fill/
-    │       ├── sd_inpaint.py
-    │       ├── lama_inpaint.py
-    │       └── inpaint_utils.py
-    └── Object_Extraction/
-        ├── detection_models.py
-        ├── object_detector.py
-        ├── detection_helpers.py
-        ├── masking_models.py
-        ├── segmentation.py
-        └── object_masking.py
-```
+Open your modern web browser (Chrome recommended) and navigate to `http://localhost:5000`.
 
 ---
-## Usage
-1. Upload image → Drag around object → Auto-segment
-2. Extract object (PNG with transparency)
-3. Fill background using context-aware inpainting
-4. Compose final image → Reposition, scale, rotate → Download
----
 
-## Inpainting Methods
-| Method | Quality | Speed | Notes |
-|--------|---------|-------|-------|
-| Stable Diffusion | ⭐ Best | ~30-60s | Context-aware, Replicate API |
-| LaMa AI | Good | ~5-10s | Local, no API needed |
-| OpenCV | Basic | Instant | Emergency fallback |
----
-
-## Configuration (`config.py`)
-```python
-SERVER_PORT = 5000
-DEFAULT_INPAINT_METHOD = 'sd'
-MAX_IMAGE_DIMENSION = 2048
-REPLICATE_API_TOKEN = 'your_token_here'
-```
+## 🖼️ Usage Workflow
+1. **Upload:** Start by uploading an image.
+2. **Segment & Extract:** Use the AI tools to click/drag around the subject to auto-segment it, extracting it with a transparent background.
+3. **Inpaint:** Remove the object from the background using context-aware fill methods.
+4. **Compose:** Use the canvas to re-arrange layers, scale, and rotate objects.
+5. **Download:** Save the final composition instantly.
 
 ---
-## Requirements
-- Python 3.8+
-- 4GB RAM minimum
-- No GPU required — Stable Diffusion runs via Replicate cloud API
-- Modern browser (Chrome recommended)
+
+## 🧠 Inpainting & AI Methods
+
+| Method | Description | Characteristics |
+|--------|-------------|-----------------|
+| **Stable Diffusion** | Cloud/API-based generation | ⭐ Best Quality, Highly context-aware |
+| **OpenCV** | Fast, local edge blending | Instant speed, Emergency fallback |
+| **Mobile SAM** | Local AI segmentation model | Accurate object masking |
+| **YOLOv8** | Local Object Detection | Fast and robust bounding boxes |
+
 ---
 
-## Security
-`serviceAccountKey.json` and model files are excluded from version control via `.gitignore`.
+## 🛡️ Security Best Practices
+- Model files, caches, and uploaded media are ignored via `.gitignore`.
+- Avoid hardcoding secrets in `config.py`. Always rely on environment variables (`.env` or system variables) for sensitive tokens (e.g., `HUGGINGFACE_TOKEN`, `STABILITY_API_KEY`).
